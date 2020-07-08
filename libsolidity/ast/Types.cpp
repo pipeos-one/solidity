@@ -190,6 +190,9 @@ util::Result<TypePointers> transformParametersToExternal(TypePointers const& _pa
 
 	for (auto const& type: _parameters)
 	{
+		if (!type)
+			continue;
+
 		if (TypePointer ext = type->interfaceType(_inLibrary).get())
 			transformed.push_back(ext);
 		else
@@ -3569,7 +3572,7 @@ string FunctionType::externalSignature() const
 	}
 
 	// "inLibrary" is only relevant if this is not an event.
-	bool const inLibrary = kind() != Kind::Event && dynamic_cast<ContractDefinition const&>(*m_declaration->scope()).isLibrary();
+	bool const inLibrary = kind() != Kind::Event && m_declaration->scope() && dynamic_cast<ContractDefinition const&>(*m_declaration->scope()).isLibrary();
 
 	auto extParams = transformParametersToExternal(m_parameterTypes, inLibrary);
 
