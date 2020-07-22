@@ -125,6 +125,9 @@ public:
 	/// signature: (x, y) -> diff
 	std::string overflowCheckedIntSubFunction(IntegerType const& _type);
 
+	/// signature: (x, y) -> power
+	std::string overflowCheckedIntExpFunction(IntegerType const& _type, IntegerType const& _exponentType);
+
 	/// @returns the name of a function that fetches the length of the given
 	/// array
 	/// signature: (array) -> length

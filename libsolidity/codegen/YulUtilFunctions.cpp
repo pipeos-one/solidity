@@ -597,6 +597,100 @@ string YulUtilFunctions::overflowCheckedIntSubFunction(IntegerType const& _type)
 	});
 }
 
+string YulUtilFunctions::overflowCheckedIntExpFunction(
+	IntegerType const& _type,
+	IntegerType const& _exponentType
+)
+{
+	solUnimplementedAssert(!_type.isSigned(), "");
+	solAssert(!_exponentType.isSigned(), "");
+
+	string functionName = "checked_exp_" + _type.identifier() + "_" + _exponentType.identifier();
+	return m_functionCollector.createFunction(functionName, [&]() {
+		return
+			Whiskers(R"(
+			function <functionName>(base, exponent) -> power {
+				base := <baseCleanupFunction>(base)
+				exponent := <exponentCleanupFunction>(exponent)
+
+				// Currently, `leave` avoids this function being inlined.
+				// We have to improve the optimizer.
+
+				// 0**0 == 1
+				switch exponent
+				case 0 { power := 1 leave }
+				case 1 { power := base leave }
+
+				let max := <maxValue>
+
+				// Specializations for small bases
+				switch base
+				case 0 { power := 0 leave } // 0**0 -> 1 is handled above
+				case 1 { power := 1 leave }
+				case 2
+				{
+					if gt(exponent, 255) { revert(0, 0) }
+					power := exp(2, exponent)
+					if gt(power, max) { revert(0, 0) }
+					leave
+				}
+
+				// b**e < 2**256 <=> e * log(b) < 256 * log(2) <=> e < 256 * log(2) / log(b)
+				if or(
+					and(lt(base, 11), lt(exponent, 78)),
+					and(lt(base, 280), lt(exponent, 32))
+				)
+				{
+					power := exp(base, exponent)
+					if gt(power, max) { revert(0, 0) }
+					leave
+				}
+
+				// Generic version
+				power := 1
+
+				for { } gt(exponent, 1) {}
+				{
+					// overflow check for base * base
+					<?signed>
+						// TODO after the first iteration, base is always positive.
+						// can we use this to optimize?
+						switch sgt(base, 0)
+						case 1 { if gt(base, div(max, base)) { revert(0, 0) }
+						case 0 { if slt(base, sdiv(max, base)) { revert(0, 0) }
+					<!signed>
+						if gt(base, div(max, base)) { revert(0, 0) }
+					</signed>
+					if and(exponent, 1)
+					{
+						// no check needed here because base >= power
+						// TODO is this also true for the signed case?
+						power := mul(power, base)
+					}
+					base := mul(base, base)
+					exponent := <shr_1>(exponent)
+				}
+				<?signed>
+					 // here, base is always positive
+					 if and(sgt(power, 0), gt(power, div(max, base))) { revert(0, 0) }
+					 if and(slt(power, 0), slt(power, sdiv(<minValue>, base))) { revert(0, 0) }
+				<!signed>
+					if gt(power, div(max, base)) { revert(0, 0) }
+				</signed>
+				power := mul(power, base)
+			}
+			)")
+			("functionName", functionName)
+			("signed", _type.isSigned())
+			("maxValue", toCompactHexWithPrefix(u256(_type.maxValue())))
+			("minValue", toCompactHexWithPrefix(u256(_type.minValue())))
+			("baseCleanupFunction", cleanupFunction(_type))
+			("exponentCleanupFunction", cleanupFunction(_exponentType))
+			("shr_1", shiftRightFunction(1))
+			.render();
+	});
+}
+
 string YulUtilFunctions::extractByteArrayLengthFunction()
 {
 	string functionName = "extract_byte_array_length";
