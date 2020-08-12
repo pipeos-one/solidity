@@ -290,8 +290,8 @@ jobs:
       - run:
           name: "Getting EVMONE"
           command: |
-            Invoke-WebRequest -URI "https://github.com/ethereum/evmone/releases/download/v0.4.1/evmone-0.4.1-windows-amd64.zip" -OutFile $Env:HOMEPATH\evmone.zip
-            Expand-Archive $Env:HOMEPATH\evmone.zip -DestinationPath .
+            Invoke-WebRequest -URI "https://github.com/ethereum/evmone/releases/download/v0.5.0/evmone-0.5.0-windows-amd64.zip" -OutFile evmone.zip
+            Expand-Archive evmone.zip -DestinationPath .
             Get-ChildItem .
       - run:
           name: "Running CMake"
