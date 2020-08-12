@@ -2,11 +2,10 @@
 
 set -e
 
-ROOT_DIR="$(dirname "$0")"/..
+ROOT_DIR=$(readlink -f "$(dirname "$0")"/..)
 WORKDIR="${ROOT_DIR}/build/antlr"
 ANTLR_JAR="${ROOT_DIR}/build/deps/antlr4.jar"
-ANTLR_JAR_URI="https://www.antlr.org/download/antlr-4.7.2-complete.jar"
-GRAMMAR_FILE="$(readlink -f "${ROOT_DIR}/docs/Solidity.g4")"
+ANTLR_JAR_URI="https://www.antlr.org/download/antlr-4.8-complete.jar"
 
 SGR_RESET="\033[0m"
 SGR_BOLD="\033[1m"
@@ -40,11 +39,14 @@ if [[ ! -f "${WORKDIR}/target/SolidityParser.class" ]] || \
     [ "${GRAMMAR_FILE}" -nt "${WORKDIR}/target/SolidityParser.class" ]
 then
   echo "Creating parser"
+  (
+  cd "${ROOT_DIR}"/docs/grammar
   # Create lexer/parser from grammar
-  java -jar "${ANTLR_JAR}" "${GRAMMAR_FILE}" -o "${WORKDIR}/src/"
+  java -jar "${ANTLR_JAR}" Solidity.g4 SolidityLexer.g4 -o "${WORKDIR}/src/"
 
   # Compile lexer/parser sources
   javac -classpath "${ANTLR_JAR}" "${WORKDIR}/src/"*.java -d "${WORKDIR}/target/"
+  )
 fi
 
 # Run tests

@@ -2,5 +2,9 @@
 Language Grammar
 ****************
 
-.. literalinclude:: Solidity.g4
-   :language: antlr
+.. a4:autogrammar:: Solidity
+   :only-reachable-from: Solidity.sourceUnit
+   :undocumented:
+
+.. a4:autogrammar:: SolidityLexer
+   :only-reachable-from: Solidity.sourceUnit
