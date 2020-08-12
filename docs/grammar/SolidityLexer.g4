@@ -157,11 +157,25 @@ Dec: '--';
  * A single quoted string literal.
  */
 StringLiteral: '"' DoubleQuotedStringCharacter* '"' | '\'' SingleQuotedStringCharacter* '\'';
-UnicodeStringLiteral: 'unicode"' DoubleQuotedStringCharacter* '"' | 'unicode\'' SingleQuotedStringCharacter* '\'';
+/**
+ * A single non-empty quoted string literal.
+ */
+NonEmptyStringLiteral: '"' DoubleQuotedStringCharacter+ '"' | '\'' SingleQuotedStringCharacter+ '\'';
 //@doc:inline
-fragment DoubleQuotedStringCharacter: ~["\r\n\\] | ('\\' .);
+fragment DoubleQuotedStringCharacter: [\u0020-\u0021\u0023-\u005B\u005D-\u007E] | UnicodeEscapeSequence | ('\\' [\u0020-\u0074\u0076-\u007E]);
 //@doc:inline
-fragment SingleQuotedStringCharacter: ~['\r\n\\] | ('\\' .);
+fragment SingleQuotedStringCharacter: [\u0020-\u0026\u0028-\u005B\u005D-\u007E] | UnicodeEscapeSequence | ('\\' [\u0020-\u0074\u0076-\u007E]);
+UnicodeStringLiteral:
+    'unicode"' DoubleQuotedUnicodeStringCharacter* '"'
+    | 'unicode\'' SingleQuotedUnicodeStringCharacter* '\'';
+//@doc:inline
+fragment DoubleQuotedUnicodeStringCharacter: ~["\r\n\\] | UnicodeEscapeSequence | ('\\' ~[u]);
+//@doc:inline
+fragment SingleQuotedUnicodeStringCharacter: ~['\r\n\\] | UnicodeEscapeSequence | ('\\' ~[u]);
+/**
+ * Unicode escape squences consist of \u followed by four hex digits.
+ */
+fragment UnicodeEscapeSequence: '\\' 'u' HexCharacter HexCharacter HexCharacter HexCharacter;
 
 /**
  * Hex strings need to consist of an even number of hex digits that may be grouped using underscores.

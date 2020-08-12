@@ -69,25 +69,37 @@ test_file()
   )
   vt_cursor_up
   vt_cursor_begin_of_line
-  if [[ "${output}" == "" ]]
-  then
-    echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_GREEN}OK${SGR_RESET}"
+  if grep -qE "^\/\/ ParserError" "${SOL_FILE}"; then
+    if [[ "${output}" != "" ]]
+    then
+      echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_GREEN}FAILED AS EXPECTED${SGR_RESET}"
+    else
+      echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_RED}SUCCEEDED DESPITE PARSER ERROR${SGR_RESET}"
+      echo "${output}"
+      failed_count=$((failed_count + 1))
+      exit 1
+    fi
   else
-    echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_RED}FAILED${SGR_RESET}"
-    echo "${output}"
-    failed_count=$((failed_count + 1))
-    exit 1
+    if [[ "${output}" == "" ]]
+    then
+      echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_GREEN}OK${SGR_RESET}"
+    else
+      echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ${SGR_BOLD}${SGR_RED}FAILED${SGR_RESET}"
+      echo "${output}"
+      failed_count=$((failed_count + 1))
+      exit 1
+    fi
   fi
 }
 
-# we only want to use files that do not contain errors or multi-source files.
+# we only want to use files that do not contain excluded parser errors, analysis errors or multi-source files.
 SOL_FILES=()
 while IFS='' read -r line
 do
   SOL_FILES+=("$line")
 done < <(
   grep -riL -E \
-    "^\/\/ (Syntax|Type|Parser|Declaration)Error|^==== Source:" \
+    "^\/\/ (Syntax|Type|Declaration)Error|^\/\/ ParserError (6275|3716|6281|2837|6933)|^==== Source:" \
     "${ROOT_DIR}/test/libsolidity/syntaxTests" \
     "${ROOT_DIR}/test/libsolidity/semanticTests" \
 )

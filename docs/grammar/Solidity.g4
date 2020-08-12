@@ -37,7 +37,7 @@ importAliases: symbol=identifier (As alias=identifier)?;
 /**
  * Path of a file to be imported.
  */
-path: StringLiteral;
+path: NonEmptyStringLiteral;
 /**
  * List of aliases for symbols to be imported.
  */
@@ -141,10 +141,23 @@ overrideSpecifier: Override (LParen overrides+=userDefinedTypeName (Comma overri
  * Depending on the context in which the function is defined, further restrictions may apply,
  * e.g. functions in interfaces have to be unimplemented, i.e. may not contain a body block.
  */
-functionDefinition:
+functionDefinition
+locals[
+    boolean visibilitySet = false,
+    boolean mutabilitySet = false,
+    boolean virtualSet = false,
+    boolean overrideSpecifierSet = false
+]
+:
 	Function (identifier | Fallback | Receive)
 	LParen (arguments=parameterList)? RParen
-	(modifierInvocation | stateMutability | visibility | Virtual | overrideSpecifier)*
+	(
+	    {!$visibilitySet}? visibility {$visibilitySet = true;}
+	    | {!$mutabilitySet}? stateMutability {$mutabilitySet = true;}
+	    | modifierInvocation
+	    | {!$virtualSet}? Virtual {$virtualSet = true;}
+	    | {!$overrideSpecifierSet}? overrideSpecifier {$overrideSpecifierSet = true;}
+	 )*
 	(Returns LParen returnParameters=parameterList RParen)?
 	(Semicolon | body=block);
 /**
@@ -152,18 +165,39 @@ functionDefinition:
  * Note that within the body block of a modifier, the underscore cannot be used as identifier,
  * but is used as placeholder statement for the body of a function to which the modifier is applied.
  */
-modifierDefinition:
+modifierDefinition
+locals[
+    boolean virtualSet = false,
+    boolean overrideSpecifierSet = false
+]
+:
     Modifier name=identifier
     (LParen (arguments=parameterList)? RParen)?
-    (Virtual | overrideSpecifier)*
+    (
+        {!$virtualSet}? Virtual {$virtualSet = true;}
+        | {!$overrideSpecifierSet}? overrideSpecifier {$overrideSpecifierSet = true;}
+    )*
     (Semicolon | body=block);
 
 /**
  * Definitions of the special fallback and receive functions.
  */
-fallbackReceiveFunctionDefinition:
+fallbackReceiveFunctionDefinition
+locals[
+    boolean visibilitySet = false,
+    boolean mutabilitySet = false,
+    boolean virtualSet = false,
+    boolean overrideSpecifierSet = false
+]
+:
 	kind=(Fallback | Receive) LParen RParen
-	(visibility | stateMutability | modifierInvocation | Virtual | overrideSpecifier)*
+	(
+	    {!$visibilitySet}? visibility {$visibilitySet = true;}
+	    | {!$mutabilitySet}? stateMutability {$mutabilitySet = true;}
+	    | modifierInvocation
+	    | {!$virtualSet}? Virtual {$virtualSet = true;}
+	    | {!$overrideSpecifierSet}? overrideSpecifier {$overrideSpecifierSet = true;}
+	 )*
 	(Semicolon | body=block);
 
 /**
@@ -182,9 +216,18 @@ enumDefinition:	Enum name=identifier LBrace enumValues+=identifier (Comma enumVa
 /**
  * The declaration of a state variable.
  */
-stateVariableDeclaration:
+stateVariableDeclaration
+locals [boolean constantnessSet = false, boolean visibilitySet = false, boolean overrideSpecifierSet = false]
+:
 	type=typeName
-	(Public | Private | Internal | Constant | overrideSpecifier | Immutable)*
+	(
+	    {!$visibilitySet}? Public {$visibilitySet = true;}
+	    | {!$visibilitySet}? Private {$visibilitySet = true;}
+	    | {!$visibilitySet}? Internal {$visibilitySet = true;}
+	    | {!$constantnessSet}? Constant {$constantnessSet = true;}
+	    | {!$overrideSpecifierSet}? overrideSpecifier {$overrideSpecifierSet = true;}
+	    | {!$constantnessSet}? Immutable {$constantnessSet = true;}
+	)*
 	name=identifier
 	(Assign initialValue=expression)?
 	Semicolon;
@@ -211,8 +254,8 @@ usingDirective: Using userDefinedTypeName For (Mul | typeName) Semicolon;
  * A type name can either be an elementary type, a function type, a mapping type, a user-defined type
  * (e.g. a contract or struct) or an array type.
  */
-typeName: elementaryTypeName | functionTypeName | mappingType | userDefinedTypeName | typeName LBrack expression? RBrack;
-elementaryTypeName: Address Payable? | Bool | String | Bytes | SignedIntegerType | UnsignedIntegerType | FixedBytes | Fixed | Ufixed;
+typeName: elementaryTypeName[true] | functionTypeName | mappingType | userDefinedTypeName | typeName LBrack expression? RBrack;
+elementaryTypeName[boolean allowAddressPayable]: Address | {$allowAddressPayable}? Address Payable | Bool | String | Bytes | SignedIntegerType | UnsignedIntegerType | FixedBytes | Fixed | Ufixed;
 functionTypeName:
     Function LParen (arguments=parameterList)? RParen
     (visibility | stateMutability)*
@@ -260,7 +303,7 @@ expression:
  	| (
 		identifier
 		| literal
-		| elementaryTypeName
+		| elementaryTypeName[false]
 		| userDefinedTypeName
 	  ) # PrimaryExpression
 ;
@@ -379,7 +422,7 @@ mappingType: Mapping LParen key=mappingKeyType Arrow value=typeName RParen;
 /**
  * Only elementary types or user defined types are viable as mapping keys.
  */
-mappingKeyType: elementaryTypeName | userDefinedTypeName;
+mappingKeyType: elementaryTypeName[false] | userDefinedTypeName;
 
 /**
  * A Yul statement within an inline assembly block.
