@@ -1,5 +1,14 @@
 lexer grammar SolidityLexer;
 
+/**
+ * Keywords reserved for future use in Solidity.
+ */
+ReservedKeywords:
+    'after' | 'alias' | 'apply' | 'auto' | 'case' | 'copyof' | 'default' | 'define' | 'final'
+    | 'implements' | 'in' | 'inline' | 'let' | 'macro' | 'match' | 'mutable' | 'null' | 'of'
+    | 'partial' | 'promise' | 'reference' | 'relocatable' | 'sealed' | 'sizeof' | 'static'
+    | 'supports' | 'switch' | 'typedef' | 'typeof' | 'unchecked' | 'var';
+
 Pragma: 'pragma' -> pushMode(PragmaMode);
 Abstract: 'abstract';
 Anonymous: 'anonymous';
