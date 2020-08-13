@@ -431,7 +431,7 @@ mappingKeyType: elementaryTypeName[false] | userDefinedTypeName;
  */
 yulStatement:
     yulBlock
-	| yulVarDecl
+	| yulVariableDeclaration
 	| yulAssignment
 	| yulFunctionCall
 	| yulIfStatement
@@ -448,7 +448,7 @@ yulBlock: YulLBrace yulStatement* YulRBrace;
  * The declaration of one or more Yul variables with optional initial value.
  * If multiple variables are declared, only a function call is a valid initial value.
  */
-yulVarDecl:
+yulVariableDeclaration:
     (YulLet variables+=YulIdentifier (YulAssign yulExpression)?)
     | (YulLet variables+=YulIdentifier (YulComma variables+=YulIdentifier)* (YulAssign yulFunctionCall)?);
 
