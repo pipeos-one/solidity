@@ -282,12 +282,23 @@ YulHexNumber: '0' 'x' [0-9a-fA-F]+;
  */
 YulDecimalNumber: '0' | ([1-9] [0-9]*);
 /**
- * String literals in Yul consist of one or more double quoted strings that may contain escape sequences
- * and regular characters except unescaped line breaks or quotes.
+ * String literals in Yul consist of one or more double-quoted or single-quoted strings
+ * that may contain escape sequences and printable characters except unescaped line breaks or
+ * unescaped double-quotes or single-quotes, respectively.
  */
-YulStringLiteral: '"' YulDoubleQuotedStringCharacter* '"';
+YulStringLiteral:
+    '"' YulDoubleQuotedStringCharacter* '"'
+    | '\'' YulSingleQuotedStringCharacter* '\'';
 //@doc:inline
-fragment YulDoubleQuotedStringCharacter: ~["\r\n\\] | ('\\' .);
+fragment YulDoubleQuotedStringCharacter:
+    [\u0020-\u0021\u0023-\u005B\u005D-\u007E]
+    | UnicodeEscapeSequence
+    | ('\\' [\u0020-\u0074\u0076-\u007E]);
+//@doc:inline
+fragment YulSingleQuotedStringCharacter:
+    [\u0020-\u0026\u0028-\u005B\u005D-\u007E]
+    | UnicodeEscapeSequence
+    | ('\\' [\u0020-\u0074\u0076-\u007E]);
 
 YulWS: [ \t\r\n\u000C]+ -> skip ;
 YulCOMMENT: '/*' .*? '*/' -> channel(HIDDEN) ;
