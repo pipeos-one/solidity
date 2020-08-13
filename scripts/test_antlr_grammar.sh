@@ -57,16 +57,27 @@ test_file()
   SOL_FILE="$(readlink -m "${1}")"
   local cur=${2}
   local max=${3}
+  local solOrYul=${4}
 
   echo -e "${SGR_BLUE}[${cur}/${max}] Testing ${SOL_FILE}${SGR_RESET} ..."
   local output
-  output=$(
-    java \
-      -classpath "${ANTLR_JAR}:${WORKDIR}/target/" \
-      "org.antlr.v4.gui.TestRig" \
-      Solidity \
-      sourceUnit <"${SOL_FILE}" 2>&1
-  )
+  if [[ "${solOrYul}" == "sol" ]]; then
+    output=$(
+      java \
+        -classpath "${ANTLR_JAR}:${WORKDIR}/target/" \
+        "org.antlr.v4.gui.TestRig" \
+        Solidity \
+        sourceUnit <"${SOL_FILE}" 2>&1
+    )
+  else
+    output=$(
+      echo "assembly $(cat "${SOL_FILE}")" | java \
+        -classpath "${ANTLR_JAR}:${WORKDIR}/target/" \
+        "org.antlr.v4.gui.TestRig" \
+        Solidity \
+        assemblyStatement 2>&1
+    )
+  fi
   vt_cursor_up
   vt_cursor_begin_of_line
   if grep -qE "^\/\/ ParserError" "${SOL_FILE}"; then
@@ -104,12 +115,38 @@ done < <(
     "${ROOT_DIR}/test/libsolidity/semanticTests" \
 )
 
+YUL_FILES=()
+# Add all yul tests with evm dialect.
+while IFS='' read -r line
+do
+  YUL_FILES+=("$line")
+done < <(
+  grep -ril -E \
+    "^\/\/ dialect: evm$" \
+    "${ROOT_DIR}/test/libyul"
+)
+# Add all yul optimizer tests without objects and types.
+while IFS='' read -r line
+do
+  YUL_FILES+=("$line")
+done < <(
+  grep -riL -E \
+    "object|\:[ ]*[uib]" \
+    "${ROOT_DIR}/test/libyul/yulOptimizerTests"
+)
+
+num_tests=$((${#SOL_FILES[*]} + ${#YUL_FILES[*]}))
 test_count=0
 for SOL_FILE in "${SOL_FILES[@]}"
 do
   test_count=$((test_count + 1))
-  test_file "${SOL_FILE}" ${test_count} ${#SOL_FILES[*]}
+  test_file "${SOL_FILE}" ${test_count} $num_tests "sol"
+done
+for YUL_FILE in "${YUL_FILES[@]}"
+do
+  test_count=$((test_count + 1))
+  test_file "${YUL_FILE}" ${test_count} $num_tests "yul"
 done
 
-echo "Summary: ${failed_count} of ${#SOL_FILES[*]} sources failed."
+echo "Summary: ${failed_count} of $num_tests sources failed."
 exit ${failed_count}
