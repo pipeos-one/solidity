@@ -173,7 +173,7 @@ fragment DoubleQuotedUnicodeStringCharacter: ~["\r\n\\] | UnicodeEscapeSequence 
 //@doc:inline
 fragment SingleQuotedUnicodeStringCharacter: ~['\r\n\\] | UnicodeEscapeSequence | ('\\' ~[u]);
 /**
- * Unicode escape squences consist of \u followed by four hex digits.
+ * Unicode escape sequences consist of \u followed by four hex digits.
  */
 fragment UnicodeEscapeSequence: '\\' 'u' HexCharacter HexCharacter HexCharacter HexCharacter;
 
